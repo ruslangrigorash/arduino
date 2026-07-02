@@ -1,0 +1,18 @@
+{
+  "name": "QuickNotes",
+  "short_name": "QuickNotes",
+  "description": "A simple and beautiful notes and tasks app",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#6366f1",
+  "theme_color": "#6366f1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%236366f1' width='100' height='100' rx='20'/><text y='70' x='50' text-anchor='middle' font-size='60' fill='white'>📝</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
