@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Coda Audio - Pricing Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-bottom: 180px;
+        }
+
+        .header {
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 15px;
+        }
+
+        .category {
+            margin-bottom: 15px;
+        }
+
+        .category-title {
+            background: white;
+            color: #667eea;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            margin-bottom: 10px;
+        }
+
+        .category-title:active {
+            transform: scale(0.98);
+        }
+
+        .toggle {
+            font-size: 1.2em;
+            transition: transform 0.3s;
+        }
+
+        .category-title.collapsed .toggle {
+            transform: rotate(-90deg);
+        }
+
+        .products {
+            display: none;
+            gap: 10px;
+        }
+
+        .products.expanded {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .product-header {
+            margin-bottom: 12px;
+        }
+
+        .product-code {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .product-desc {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            line-height: 1.4;
+        }
+
+        .product-retail {
+            font-size: 1.2em;
+            color: #e74c3c;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .product-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-label {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            font-weight: 600;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+        }
+
+        .product-totals {
+            border-top: 2px solid #ecf0f1;
+            padding-top: 12px;
+            margin-top: 12px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .total-label {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        .total-value {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .total-value.retail {
+            color: #e74c3c;
+        }
+
+        .total-value.my-price {
+            color: #27ae60;
+        }
+
+        .breakdown {
+            font-size: 0.75em;
+            color: #95a5a6;
+            margin-top: 3px;
+        }
+
+        .grand-totals {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(44, 62, 80, 0.98);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        .grand-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .grand-total-row:last-child {
+            border-bottom: none;
+            padding-top: 12px;
+        }
+
+        .grand-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .grand-value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .savings {
+            color: #f39c12;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .content {
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 30px;
+            }
+
+            .product-controls {
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔊 Coda Audio USA</h1>
+        <p>Pricing Calculator</p>
+    </div>
+
+    <div class="content" id="categories"></div>
+
+    <div class="grand-totals">
+        <div class="grand-total-row">
+            <span class="grand-label">Items:</span>
+            <span class="grand-value" id="totalItems">0</span>
+        </div>
+        <div class="grand-total-row">
+            <span class="grand-label">Retail Total:</span>
+            <span class="grand-value retail-price" id="totalRetail">$0</span>
+        </div>
+        <div class="grand-total-row">
+            <span class="grand-label">Your Price:</span>
+            <span class="grand-value my-price" id="totalMyPrice">$0</span>
+        </div>
+        <div class="grand-total-row">
+            <span class="grand-label">You Save:</span>
+            <span class="grand-value savings" id="totalSavings">$0</span>
+        </div>
+    </div>
+
+    <script>
+        const products = [
+            {
+                category: "Electronics - DSP Amplifiers",
+                items: [
+                    { code: "LINUS14", desc: '19"/2U 4-in/4-out loudspeaker management power amplifier 4x 3500 W', price: 14365, hasColor: false },
+                    { code: "LINUS14D", desc: '19"/2U 4-in/4-out with Dante module', price: 14910, hasColor: false },
+                    { code: "LINUS12C", desc: '19"/2U 4-in/4-out power amplifier 4x 3000W', price: 10615, hasColor: false },
+                    { code: "LINUS6.4i-D", desc: '19"/1U 4x 1500W with DANTE redundant', price: 4620, hasColor: false },
+                    { code: "LINUS6.4i", desc: '19"/1U 4x 1500W', price: 3745, hasColor: false }
+                ]
+            },
+            {
+                category: "AiRAY - High Output Line Array",
+                items: [
+                    { code: "AiRAY 120°", desc: '3-way bi-amp line array, 2x12" + 2x6" MF/HF, 90°', price: 12870, hasColor: true },
+                    { code: "AiRAY 90°", desc: '3-way bi-amp line array, 2x12" + 2x6" MF/HF, 120°', price: 12870, hasColor: true },
+                    { code: "SC2-F", desc: 'Sensor controlled LF extension, 2450W, 2x15"', price: 8160, hasColor: true },
+                    { code: "SCV-F", desc: 'Sensor controlled subwoofer, 1500W, 18"', price: 5335, hasColor: true },
+                    { code: "SCP", desc: 'Sensor controlled subwoofer, 3000W, 2x18"', price: 7125, hasColor: true },
+                    { code: "SCP-F", desc: 'SCP Subwoofer with flying hardware', price: 8645, hasColor: true }
+                ]
+            },
+            {
+                category: "CiRAY Series",
+                items: [
+                    { code: "CiRAY", desc: '3-way passive, 2x10" + 8.75" MF/HF, 1400W', price: 9880, hasColor: true }
+                ]
+            },
+            {
+                category: "ViRAY - Compact Line Array",
+                items: [
+                    { code: "ViRAY", desc: 'Compact 3-way bi-amp, 600W + 150W, 2x8" + 8" coaxial', price: 6875, hasColor: true }
+                ]
+            },
+            {
+                category: "N-RAY - Ultra Compact",
+                items: [
+                    { code: "N-RAY 90", desc: '3-way passive, 2x6.5" + 6" DDP, 1000W, 90°', price: 5615, hasColor: true },
+                    { code: "N-RAY 120", desc: '3-way passive, 2x6.5" + 6" DDP, 1000W, 120°', price: 5615, hasColor: true },
+                    { code: "SCN-F", desc: 'Compact 15" sensor bass extension, 1500W', price: 4905, hasColor: true }
+                ]
+            },
+            {
+                category: "TiRAY - Ultra Compact",
+                items: [
+                    { code: "TiRAY", desc: 'Ultra compact 2-way passive, 300W, 2x5" + 5" HF', price: 3300, hasColor: true },
+                    { code: "TiLOW", desc: 'LF extension for TiRAY, 1000W, 12"', price: 2845, hasColor: true },
+                    { code: "U4-Sub", desc: 'High output subwoofer, 2500W, 2x18"', price: 4825, hasColor: true }
+                ]
+            },
+            {
+                category: "N-APS - Point Source",
+                items: [
+                    { code: "N-APS 60", desc: '2-way passive, 2x6.5" + 6", 1000W, 60°x20°', price: 4095, hasColor: true },
+                    { code: "N-APS 90", desc: '2-way passive, 2x6.5" + 6", 1000W, 90°x20°', price: 4095, hasColor: true },
+                    { code: "N-APS 120", desc: '2-way passive, 2x6.5" + 6", 1000W, 120°x20°', price: 4095, hasColor: true },
+                    { code: "N-SUB", desc: 'Subwoofer for N-APS, 1500W, 15"', price: 3740, hasColor: true }
+                ]
+            },
+            {
+                category: "APS Series",
+                items: [
+                    { code: "APS-Pro-D", desc: '3-way passive, 2x10" + 8.75", 1400W, 90°x10°', price: 7495, hasColor: true },
+                    { code: "APS-Pro-S", desc: '3-way passive, 2x10" + 9", 1400W, 90°x30°', price: 7495, hasColor: true },
+                    { code: "APS", desc: '3-way passive, 2x10" + 9", 1200W, 90°x20°', price: 6930, hasColor: true },
+                    { code: "APS-SUB", desc: 'Subwoofer for APS, 1250W, 18"', price: 4275, hasColor: true }
+                ]
+            },
+            {
+                category: "CoRAY - Column (Touring)",
+                items: [
+                    { code: "CoRAY4", desc: '2-way column, 700W, 4x5" / 2x4", 120° 60° 90°', price: 4960, hasColor: true },
+                    { code: "CoRAY4L", desc: 'Low/Mid extension, 700W, 4x5"', price: 3120, hasColor: true },
+                    { code: "U12", desc: 'Compact sub, 800W, 12"', price: 2315, hasColor: true },
+                    { code: "U15", desc: 'Compact sub, 1000W, 15"', price: 2490, hasColor: true },
+                    { code: "G18-SUB", desc: 'Extended LF sub, 1200W, 18"', price: 3020, hasColor: true }
+                ]
+            },
+            {
+                category: "CUE - Stage Monitors",
+                items: [
+                    { code: "CUE ONE", desc: '3-way monitor, 2000W, 2x12" + 1.4"', price: 4945, hasColor: true },
+                    { code: "CUE TWO", desc: '3-way monitor, 1000W, 15" + 1.4"', price: 3955, hasColor: true },
+                    { code: "CUE FOUR", desc: '3-way compact monitor, 500W, 2x8" + 1.4"', price: 3225, hasColor: true }
+                ]
+            },
+            {
+                category: "G-Series - Full Range",
+                items: [
+                    { code: "G308-Pro", desc: '2-way, 220W, 8" / 1", 90°', price: 1520, hasColor: true },
+                    { code: "G308", desc: '2-way install, 220W, 8" / 1", 90°', price: 1280, hasColor: true },
+                    { code: "G512-Pro", desc: '2-way, 600W, 12" / 1", 90°x60°', price: 2365, hasColor: true },
+                    { code: "G515-Pro", desc: '2-way, 600W, 15" / 1", 90°x60°', price: 2670, hasColor: true },
+                    { code: "G712-Pro", desc: '3-way, 1000W, 12" / 1.4" coax', price: 3675, hasColor: true },
+                    { code: "G715-Pro", desc: '3-way, 1000W, 15" / 1.4" coax', price: 3875, hasColor: true },
+                    { code: "G15-SUB", desc: 'Compact sub, 1200W, 15"', price: 2590, hasColor: true }
+                ]
+            },
+            {
+                category: "HOPS - High Output",
+                items: [
+                    { code: "HOPS12i-Pro 96", desc: 'Install 3-way, 2000W, 90°x60°, 2x12"', price: 5985, hasColor: true },
+                    { code: "HOPS12i-Pro 64", desc: 'Install 3-way, 2000W, 60°x40°, 2x12"', price: 5985, hasColor: true },
+                    { code: "HOPS12T-Pro 96", desc: 'Touring 3-way, 2000W, 90°x60°, 2x12"', price: 6595, hasColor: true },
+                    { code: "HOPS12T-Pro 64", desc: 'Touring 3-way, 2000W, 60°x40°, 2x12"', price: 6595, hasColor: true },
+                    { code: "HOPS10i-Pro", desc: 'Install 3-way, 1400W, 80°x50°, 2x10"', price: 5000, hasColor: true },
+                    { code: "HOPS10T-Pro", desc: 'Touring 3-way, 1400W, 80°x50°, 2x10"', price: 5625, hasColor: true },
+                    { code: "HOPS7-Pro 85", desc: 'Compact 2-way, 1000W, 80°x50°', price: 3745, hasColor: true },
+                    { code: "HOPS7-Pro 126", desc: 'Compact 2-way, 1000W, 120°x60°', price: 3745, hasColor: true },
+                    { code: "HOPS8T", desc: 'Touring dual 8" coaxial, 450W', price: 2135, hasColor: true },
+                    { code: "HOPS8i", desc: 'Install dual 8" coaxial, 450W', price: 1780, hasColor: true },
+                    { code: "HOPS5", desc: 'Dual 5" coaxial, 300W', price: 1555, hasColor: true }
+                ]
+            },
+            {
+                category: "D-Series - Installation",
+                items: [
+                    { code: "D5-Cube", desc: '2-way coaxial, 125W, 5" / 1"', price: 900, hasColor: true },
+                    { code: "D5-Tube", desc: '2-way coaxial, 125W, 5" / 1", aluminum', price: 955, hasColor: true },
+                    { code: "D5-Ceiling", desc: '2-way ceiling, 125W, 5" / 1"', price: 955, hasColor: true },
+                    { code: "D8", desc: '2-way coaxial, 250W, 8" / 1"', price: 1370, hasColor: true },
+                    { code: "D12", desc: '2-way coaxial, 600W, 12" / 1.75"', price: 2015, hasColor: true },
+                    { code: "D20", desc: '3-way, 1000W, 8" / 1.75" + 12"', price: 3030, hasColor: true }
+                ]
+            },
+            {
+                category: "CoRAYi - Install Column",
+                items: [
+                    { code: "CoRAY4i", desc: '2-way install column, 700W, 4x5" / 2x4"', price: 4240, hasColor: true },
+                    { code: "CoRAY4Li", desc: 'Low/Mid extension, 700W, 4x5"', price: 2400, hasColor: true },
+                    { code: "U12i", desc: 'Slim wall sub, 800W, 12"', price: 2315, hasColor: true }
+                ]
+            },
+            {
+                category: "Accessories - Cables",
+                items: [
+                    { code: "CAHSCP-10", desc: 'Hybrid speaker/sensor cable, 10m', price: 890, hasColor: false },
+                    { code: "CAHSCP-20", desc: 'Hybrid speaker/sensor cable, 20m', price: 1245, hasColor: false },
+                    { code: "CAL4SP-1.5", desc: '4-pole speaker cable, 1.5m', price: 130, hasColor: false },
+                    { code: "CAL4SP-10", desc: '4-pole speaker cable, 10m', price: 540, hasColor: false },
+                    { code: "CAL4SP-20", desc: '4-pole speaker cable, 20m', price: 650, hasColor: false }
+                ]
+            }
+        ];
+
+        function calculatePrices(retailPrice, quantity, color) {
+            if (quantity === 0) {
+                return { retailTotal: 0, myTotal: 0 };
+            }
+
+            let paintCost = 0;
+            if (color === 'white') {
+                paintCost = retailPrice * 0.05;
+            } else if (color === 'custom') {
+                paintCost = retailPrice * 0.10;
+            }
+
+            const myBasePrice = retailPrice * 0.65;
+            const importFee = myBasePrice * 0.09;
+
+            const retailTotal = (retailPrice + paintCost + importFee) * quantity;
+            const myTotal = (myBasePrice + paintCost + importFee) * quantity;
+
+            return { 
+                retailTotal, 
+                myTotal,
+                breakdown: {
+                    retail: retailPrice,
+                    paint: paintCost,
+                    myBase: myBasePrice,
+                    import: importFee,
+                    quantity: quantity
+                }
+            };
+        }
+
+        function renderProducts() {
+            const categoriesDiv = document.getElementById('categories');
+            categoriesDiv.innerHTML = '';
+
+            products.forEach((category, catIndex) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category';
+
+                const categoryTitle = document.createElement('div');
+                categoryTitle.className = 'category-title collapsed';
+                categoryTitle.innerHTML = `
+                    <span>${category.category}</span>
+                    <span class="toggle">▼</span>
+                `;
+                categoryTitle.onclick = () => toggleCategory(catIndex);
+
+                const productsDiv = document.createElement('div');
+                productsDiv.className = 'products';
+                productsDiv.id = `category-${catIndex}`;
+
+                category.items.forEach((item, itemIndex) => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+
+                    const colorControl = item.hasColor ? `
+                        <div class="control-group">
+                            <label class="control-label">Color</label>
+                            <select id="color-${catIndex}-${itemIndex}" onchange="updateTotals()">
+                                <option value="black">Black</option>
+                                <option value="white">White +5%</option>
+                                <option value="custom">Custom +10%</option>
+                            </select>
+                        </div>
+                    ` : '';
+
+                    card.innerHTML = `
+                        <div class="product-header">
+                            <div class="product-code">${item.code}</div>
+                            <div class="product-desc">${item.desc}</div>
+                            <div class="product-retail">$${item.price.toLocaleString()}</div>
+                        </div>
+                        
+                        <div class="product-controls">
+                            <div class="control-group">
+                                <label class="control-label">Quantity</label>
+                                <input type="number" id="qty-${catIndex}-${itemIndex}" min="0" value="0" onchange="updateTotals()">
+                            </div>
+                            ${colorControl}
+                        </div>
+
+                        <div class="product-totals" id="totals-${catIndex}-${itemIndex}" style="display:none;">
+                            <div class="total-row">
+                                <span class="total-label">Retail Total:</span>
+                                <span class="total-value retail" id="retail-${catIndex}-${itemIndex}">$0</span>
+                            </div>
+                            <div class="breakdown" id="breakdown-retail-${catIndex}-${itemIndex}"></div>
+                            
+                            <div class="total-row" style="margin-top:8px;">
+                                <span class="total-label">Your Price:</span>
+                                <span class="total-value my-price" id="my-${catIndex}-${itemIndex}">$0</span>
+                            </div>
+                            <div class="breakdown" id="breakdown-my-${catIndex}-${itemIndex}"></div>
+                        </div>
+                    `;
+
+                    productsDiv.appendChild(card);
+                });
+
+                categoryDiv.appendChild(categoryTitle);
+                categoryDiv.appendChild(productsDiv);
+                categoriesDiv.appendChild(categoryDiv);
+            });
+        }
+
+        function toggleCategory(index) {
+            const categoryContent = document.getElementById(`category-${index}`);
+            const categoryTitle = document.querySelectorAll('.category-title')[index];
+            
+            if (categoryContent.classList.contains('expanded')) {
+                categoryContent.classList.remove('expanded');
+                categoryTitle.classList.add('collapsed');
+            } else {
+                categoryContent.classList.add('expanded');
+                categoryTitle.classList.remove('collapsed');
+            }
+        }
+
+        function updateTotals() {
+            let totalItems = 0;
+            let totalRetail = 0;
+            let totalMyPrice = 0;
+
+            products.forEach((category, catIndex) => {
+                category.items.forEach((item, itemIndex) => {
+                    const qtyInput = document.getElementById(`qty-${catIndex}-${itemIndex}`);
+                    const colorSelect = document.getElementById(`color-${catIndex}-${itemIndex}`);
+                    
+                    const quantity = parseInt(qtyInput.value) || 0;
+                    const color = colorSelect ? colorSelect.value : 'black';
+
+                    const prices = calculatePrices(item.price, quantity, color);
+                    const totalsDiv = document.getElementById(`totals-${catIndex}-${itemIndex}`);
+
+                    if (quantity > 0) {
+                        totalsDiv.style.display = 'block';
+                        
+                        document.getElementById(`retail-${catIndex}-${itemIndex}`).textContent = 
+                            `$${prices.retailTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                        document.getElementById(`my-${catIndex}-${itemIndex}`).textContent = 
+                            `$${prices.myTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+                        const bd = prices.breakdown;
+                        let paintText = bd.paint > 0 ? `+ Paint $${bd.paint.toFixed(0)} ` : '';
+                        document.getElementById(`breakdown-retail-${catIndex}-${itemIndex}`).textContent = 
+                            `$${bd.retail} ${paintText}+ Import $${bd.import.toFixed(0)} × ${bd.quantity}`;
+                        document.getElementById(`breakdown-my-${catIndex}-${itemIndex}`).textContent = 
+                            `$${bd.myBase.toFixed(0)} ${paintText}+ Import $${bd.import.toFixed(0)} × ${bd.quantity}`;
+                    } else {
+                        totalsDiv.style.display = 'none';
+                    }
+
+                    totalItems += quantity;
+                    totalRetail += prices.retailTotal;
+                    totalMyPrice += prices.myTotal;
+                });
+            });
+
+            document.getElementById('totalItems').textContent = totalItems;
+            document.getElementById('totalRetail').textContent = 
+                `$${totalRetail.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+            document.getElementById('totalMyPrice').textContent = 
+                `$${totalMyPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+            document.getElementById('totalSavings').textContent = 
+                `$${(totalRetail - totalMyPrice).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+        }
+
+        // Initialize
+        renderProducts();
+        updateTotals();
+    </script>
+</body>
+</html>
