@@ -727,10 +727,61 @@
                 `$${totalMyPrice.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
             document.getElementById('totalSavings').textContent = 
                 `$${(totalRetail - totalMyPrice).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+
+            // Auto-save on every change
+            autoSave();
+        }
+
+        // Auto-save function
+        function autoSave() {
+            const projectData = {
+                timestamp: new Date().toISOString(),
+                selections: []
+            };
+
+            products.forEach((category, catIndex) => {
+                category.items.forEach((item, itemIndex) => {
+                    const qtyInput = document.getElementById(`qty-${catIndex}-${itemIndex}`);
+                    const colorSelect = document.getElementById(`color-${catIndex}-${itemIndex}`);
+                    const quantity = parseInt(qtyInput.value) || 0;
+
+                    if (quantity > 0) {
+                        projectData.selections.push({
+                            catIndex,
+                            itemIndex,
+                            code: item.code,
+                            quantity,
+                            color: colorSelect ? colorSelect.value : 'black'
+                        });
+                    }
+                });
+            });
+
+            localStorage.setItem('codaAudioProject', JSON.stringify(projectData));
+        }
+
+        // Auto-load on page load
+        function autoLoad() {
+            const saved = localStorage.getItem('codaAudioProject');
+            if (!saved) return;
+
+            const projectData = JSON.parse(saved);
+
+            // Load saved selections
+            projectData.selections.forEach(sel => {
+                const qtyInput = document.getElementById(`qty-${sel.catIndex}-${sel.itemIndex}`);
+                const colorSelect = document.getElementById(`color-${sel.catIndex}-${sel.itemIndex}`);
+                
+                if (qtyInput) qtyInput.value = sel.quantity;
+                if (colorSelect) colorSelect.value = sel.color;
+            });
+
+            updateTotals();
         }
 
         // Initialize
         renderProducts();
+        autoLoad(); // Auto-load saved project
         updateTotals();
 
         // Save/Load/Export Functions
@@ -835,13 +886,13 @@
         }
 
         function buildQuoteText(includeMyPrice, includeBreakdown) {
-            let quote = '═══════════════════════════════════════════\n';
+            let quote = '===============================================\n';
             quote += '           CODA AUDIO USA\n';
             quote += '        EQUIPMENT QUOTE\n';
-            quote += '═══════════════════════════════════════════\n';
+            quote += '===============================================\n';
             quote += `Date: ${new Date().toLocaleDateString()}\n`;
             quote += `Time: ${new Date().toLocaleTimeString()}\n`;
-            quote += '═══════════════════════════════════════════\n\n';
+            quote += '===============================================\n\n';
 
             let grandRetail = 0;
             let grandMyPrice = 0;
@@ -858,7 +909,7 @@
 
                     if (quantity > 0) {
                         if (!categoryHasItems) {
-                            categoryText += `\n━━━ ${category.category} ━━━\n\n`;
+                            categoryText += `\n--- ${category.category} ---\n\n`;
                             categoryHasItems = true;
                         }
 
@@ -903,7 +954,7 @@
                             categoryText += `YOUR PRICE TOTAL: $${prices.myTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
                         }
 
-                        categoryText += '\n' + '─'.repeat(45) + '\n';
+                        categoryText += '\n' + '---------------------------------------------\n';
 
                         grandRetail += prices.retailTotal;
                         grandMyPrice += prices.myTotal;
@@ -916,9 +967,9 @@
                 }
             });
 
-            quote += '\n═══════════════════════════════════════════\n';
+            quote += '\n===============================================\n';
             quote += '              TOTALS\n';
-            quote += '═══════════════════════════════════════════\n';
+            quote += '===============================================\n';
             quote += `Total Items: ${itemCount}\n`;
             quote += `Total Retail Price: $${grandRetail.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
             
@@ -927,7 +978,7 @@
                 quote += `Your Savings: $${(grandRetail - grandMyPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
             }
             
-            quote += '═══════════════════════════════════════════\n\n';
+            quote += '===============================================\n\n';
             quote += 'Coda Audio USA\n';
             quote += '1200 Harbour Way South Suite 118\n';
             quote += 'Richmond, CA 94804\n';
