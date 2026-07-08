@@ -393,6 +393,7 @@
             
             <button class="modal-button" onclick="generateQuote()">📋 Copy Quote to Clipboard</button>
             <button class="modal-button" onclick="downloadQuote()">⬇️ Download as Text File</button>
+            <button class="modal-button" onclick="printToPDF()">📄 Save as PDF / Print</button>
             <button class="modal-button secondary" onclick="closeExportModal()">Cancel</button>
         </div>
     </div>
@@ -883,6 +884,285 @@
             
             alert('✅ Quote downloaded!');
             closeExportModal();
+        }
+
+        function printToPDF() {
+            const includeMyPrice = document.getElementById('includeMyPrice').checked;
+            const includeBreakdown = document.getElementById('includeBreakdown').checked;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(buildPrintableHTML(includeMyPrice, includeBreakdown));
+            printWindow.document.close();
+            
+            closeExportModal();
+            
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        }
+
+        function buildPrintableHTML(includeMyPrice, includeBreakdown) {
+            let html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coda Audio Quote - ${new Date().toLocaleDateString()}</title>
+    <style>
+        @media print {
+            body { margin: 0; padding: 20px; }
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin: 0 0 10px 0;
+        }
+        .header h2 {
+            color: #666;
+            font-size: 1.2em;
+            font-weight: normal;
+            margin: 0 0 15px 0;
+        }
+        .date-info {
+            color: #999;
+            font-size: 0.9em;
+        }
+        .category-title {
+            background: #667eea;
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin: 25px 0 15px 0;
+        }
+        .item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            page-break-inside: avoid;
+        }
+        .item-code {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .item-desc {
+            color: #666;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+        }
+        .item-details {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 5px 15px;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        .label {
+            font-weight: 600;
+            color: #555;
+        }
+        .value {
+            color: #333;
+        }
+        .breakdown {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 3px solid #667eea;
+            font-size: 0.85em;
+        }
+        .breakdown-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #667eea;
+        }
+        .price-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+        }
+        .total-line {
+            font-size: 1.1em;
+            font-weight: bold;
+            padding: 8px 0;
+            margin-top: 10px;
+            border-top: 2px solid #ddd;
+        }
+        .retail-total {
+            color: #e74c3c;
+        }
+        .my-total {
+            color: #27ae60;
+        }
+        .grand-totals {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 5px;
+            page-break-inside: avoid;
+        }
+        .grand-totals h3 {
+            margin: 0 0 15px 0;
+            text-align: center;
+            font-size: 1.3em;
+        }
+        .grand-total-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 1.1em;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        .grand-total-line:last-child {
+            border-bottom: none;
+            padding-top: 15px;
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #667eea;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .footer .company-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>CODA AUDIO USA</h1>
+        <h2>Equipment Quote</h2>
+        <div class="date-info">
+            Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
+        </div>
+    </div>
+`;
+
+            let grandRetail = 0;
+            let grandMyPrice = 0;
+            let itemCount = 0;
+
+            products.forEach((category, catIndex) => {
+                let categoryHasItems = false;
+
+                category.items.forEach((item, itemIndex) => {
+                    const qtyInput = document.getElementById(`qty-${catIndex}-${itemIndex}`);
+                    const colorSelect = document.getElementById(`color-${catIndex}-${itemIndex}`);
+                    const quantity = parseInt(qtyInput.value) || 0;
+
+                    if (quantity > 0) {
+                        if (!categoryHasItems) {
+                            html += `<div class="category-title">${category.category}</div>`;
+                            categoryHasItems = true;
+                        }
+
+                        const color = colorSelect ? colorSelect.value : 'black';
+                        const prices = calculatePrices(item.price, quantity, color);
+
+                        html += `<div class="item">`;
+                        html += `<div class="item-code">${item.code}</div>`;
+                        html += `<div class="item-desc">${item.desc}</div>`;
+                        
+                        html += `<div class="item-details">`;
+                        if (item.hasColor) {
+                            const colorText = color === 'black' ? 'Black' : color === 'white' ? 'White (+5%)' : 'Custom (+10%)';
+                            html += `<span class="label">Color:</span><span class="value">${colorText}</span>`;
+                        }
+                        html += `<span class="label">Quantity:</span><span class="value">${quantity}</span>`;
+                        html += `<span class="label">Unit Price:</span><span class="value">$${item.price.toLocaleString()}</span>`;
+                        html += `</div>`;
+
+                        if (includeBreakdown && prices.breakdown) {
+                            const bd = prices.breakdown;
+                            html += `<div class="breakdown">`;
+                            html += `<div class="breakdown-title">Retail Price Breakdown:</div>`;
+                            html += `<div class="price-line"><span>Base Price:</span><span>$${bd.retail.toLocaleString()}</span></div>`;
+                            if (bd.paint > 0) {
+                                html += `<div class="price-line"><span>Paint Cost:</span><span>+$${bd.paint.toFixed(2)}</span></div>`;
+                            }
+                            html += `<div class="price-line"><span>Import Fee (9%):</span><span>+$${bd.import.toFixed(2)}</span></div>`;
+                            html += `<div class="price-line"><span>Per Unit Total:</span><span>$${((bd.retail + bd.paint + bd.import)).toFixed(2)}</span></div>`;
+                            html += `</div>`;
+                        }
+
+                        html += `<div class="total-line retail-total">`;
+                        html += `<span>RETAIL TOTAL:</span><span>$${prices.retailTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                        html += `</div>`;
+
+                        if (includeMyPrice) {
+                            if (includeBreakdown && prices.breakdown) {
+                                const bd = prices.breakdown;
+                                html += `<div class="breakdown">`;
+                                html += `<div class="breakdown-title">Your Price Breakdown:</div>`;
+                                html += `<div class="price-line"><span>Discounted Base (35% off):</span><span>$${bd.myBase.toFixed(2)}</span></div>`;
+                                if (bd.paint > 0) {
+                                    html += `<div class="price-line"><span>Paint Cost (full price):</span><span>+$${bd.paint.toFixed(2)}</span></div>`;
+                                }
+                                html += `<div class="price-line"><span>Import Fee (9%):</span><span>+$${bd.import.toFixed(2)}</span></div>`;
+                                html += `<div class="price-line"><span>Per Unit Total:</span><span>$${((bd.myBase + bd.paint + bd.import)).toFixed(2)}</span></div>`;
+                                html += `</div>`;
+                            }
+                            html += `<div class="total-line my-total">`;
+                            html += `<span>YOUR PRICE TOTAL:</span><span>$${prices.myTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>`;
+                            html += `</div>`;
+                        }
+
+                        html += `</div>`;
+
+                        grandRetail += prices.retailTotal;
+                        grandMyPrice += prices.myTotal;
+                        itemCount += quantity;
+                    }
+                });
+            });
+
+            html += `<div class="grand-totals">`;
+            html += `<h3>SUMMARY</h3>`;
+            html += `<div class="grand-total-line"><span>Total Items:</span><span>${itemCount}</span></div>`;
+            html += `<div class="grand-total-line"><span>Total Retail Price:</span><span>$${grandRetail.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`;
+            
+            if (includeMyPrice) {
+                html += `<div class="grand-total-line"><span>Your Price Total:</span><span>$${grandMyPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`;
+                html += `<div class="grand-total-line"><span>Your Savings:</span><span style="color:#f39c12">$${(grandRetail - grandMyPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>`;
+            }
+            
+            html += `</div>`;
+
+            html += `<div class="footer">`;
+            html += `<div class="company-name">Coda Audio USA</div>`;
+            html += `<div>1200 Harbour Way South Suite 118</div>`;
+            html += `<div>Richmond, CA 94804</div>`;
+            html += `<div>+1 415 747 8593</div>`;
+            html += `<div>usa@codaaudio.com | www.codaaudiousa.com</div>`;
+            html += `</div>`;
+
+            html += `</body></html>`;
+
+            return html;
         }
 
         function buildQuoteText(includeMyPrice, includeBreakdown) {
