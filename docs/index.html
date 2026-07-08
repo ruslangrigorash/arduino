@@ -237,6 +237,119 @@
             display: none;
         }
 
+        .action-buttons {
+            position: fixed;
+            top: 70px;
+            right: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 99;
+        }
+
+        .action-btn {
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 1.5em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.9);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+
+        .modal-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .modal-button:active {
+            background: #5568d3;
+        }
+
+        .modal-button.secondary {
+            background: #95a5a6;
+        }
+
+        .checkbox-group {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+
+        .checkbox-group label {
+            font-size: 1em;
+        }
+
+        .quote-preview {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 0.85em;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
         @media (min-width: 768px) {
             .content {
                 max-width: 800px;
@@ -256,7 +369,33 @@
         <p>Pricing Calculator</p>
     </div>
 
+    <div class="action-buttons">
+        <button class="action-btn" onclick="saveProject()" title="Save Project">💾</button>
+        <button class="action-btn" onclick="loadProject()" title="Load Project">📂</button>
+        <button class="action-btn" onclick="showExportModal()" title="Export Quote">📄</button>
+    </div>
+
     <div class="content" id="categories"></div>
+
+    <div id="exportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Export Quote</div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="includeMyPrice" checked>
+                <label for="includeMyPrice">Include My Price (Discounted)</label>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="includeBreakdown" checked>
+                <label for="includeBreakdown">Include Price Breakdown</label>
+            </div>
+            
+            <button class="modal-button" onclick="generateQuote()">📋 Copy Quote to Clipboard</button>
+            <button class="modal-button" onclick="downloadQuote()">⬇️ Download as Text File</button>
+            <button class="modal-button secondary" onclick="closeExportModal()">Cancel</button>
+        </div>
+    </div>
 
     <div class="grand-totals">
         <div class="grand-total-row">
@@ -593,6 +732,211 @@
         // Initialize
         renderProducts();
         updateTotals();
+
+        // Save/Load/Export Functions
+        function saveProject() {
+            const projectData = {
+                timestamp: new Date().toISOString(),
+                selections: []
+            };
+
+            products.forEach((category, catIndex) => {
+                category.items.forEach((item, itemIndex) => {
+                    const qtyInput = document.getElementById(`qty-${catIndex}-${itemIndex}`);
+                    const colorSelect = document.getElementById(`color-${catIndex}-${itemIndex}`);
+                    const quantity = parseInt(qtyInput.value) || 0;
+
+                    if (quantity > 0) {
+                        projectData.selections.push({
+                            catIndex,
+                            itemIndex,
+                            code: item.code,
+                            quantity,
+                            color: colorSelect ? colorSelect.value : 'black'
+                        });
+                    }
+                });
+            });
+
+            localStorage.setItem('codaAudioProject', JSON.stringify(projectData));
+            alert('✅ Project saved successfully!');
+        }
+
+        function loadProject() {
+            const saved = localStorage.getItem('codaAudioProject');
+            if (!saved) {
+                alert('❌ No saved project found');
+                return;
+            }
+
+            if (!confirm('Load saved project? Current selections will be replaced.')) {
+                return;
+            }
+
+            const projectData = JSON.parse(saved);
+
+            // Reset all inputs
+            products.forEach((category, catIndex) => {
+                category.items.forEach((item, itemIndex) => {
+                    const qtyInput = document.getElementById(`qty-${catIndex}-${itemIndex}`);
+                    if (qtyInput) qtyInput.value = 0;
+                });
+            });
+
+            // Load saved selections
+            projectData.selections.forEach(sel => {
+                const qtyInput = document.getElementById(`qty-${sel.catIndex}-${sel.itemIndex}`);
+                const colorSelect = document.getElementById(`color-${sel.catIndex}-${sel.itemIndex}`);
+                
+                if (qtyInput) qtyInput.value = sel.quantity;
+                if (colorSelect) colorSelect.value = sel.color;
+            });
+
+            updateTotals();
+            alert('✅ Project loaded successfully!');
+        }
+
+        function showExportModal() {
+            document.getElementById('exportModal').classList.add('show');
+        }
+
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.remove('show');
+        }
+
+        function generateQuote() {
+            const includeMyPrice = document.getElementById('includeMyPrice').checked;
+            const includeBreakdown = document.getElementById('includeBreakdown').checked;
+            const quote = buildQuoteText(includeMyPrice, includeBreakdown);
+
+            navigator.clipboard.writeText(quote).then(() => {
+                alert('✅ Quote copied to clipboard!');
+                closeExportModal();
+            }).catch(() => {
+                alert('❌ Failed to copy. Try download instead.');
+            });
+        }
+
+        function downloadQuote() {
+            const includeMyPrice = document.getElementById('includeMyPrice').checked;
+            const includeBreakdown = document.getElementById('includeBreakdown').checked;
+            const quote = buildQuoteText(includeMyPrice, includeBreakdown);
+
+            const blob = new Blob([quote], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Coda-Audio-Quote-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            alert('✅ Quote downloaded!');
+            closeExportModal();
+        }
+
+        function buildQuoteText(includeMyPrice, includeBreakdown) {
+            let quote = '═══════════════════════════════════════════\n';
+            quote += '           CODA AUDIO USA\n';
+            quote += '        EQUIPMENT QUOTE\n';
+            quote += '═══════════════════════════════════════════\n';
+            quote += `Date: ${new Date().toLocaleDateString()}\n`;
+            quote += `Time: ${new Date().toLocaleTimeString()}\n`;
+            quote += '═══════════════════════════════════════════\n\n';
+
+            let grandRetail = 0;
+            let grandMyPrice = 0;
+            let itemCount = 0;
+
+            products.forEach((category, catIndex) => {
+                let categoryHasItems = false;
+                let categoryText = '';
+
+                category.items.forEach((item, itemIndex) => {
+                    const qtyInput = document.getElementById(`qty-${catIndex}-${itemIndex}`);
+                    const colorSelect = document.getElementById(`color-${catIndex}-${itemIndex}`);
+                    const quantity = parseInt(qtyInput.value) || 0;
+
+                    if (quantity > 0) {
+                        if (!categoryHasItems) {
+                            categoryText += `\n━━━ ${category.category} ━━━\n\n`;
+                            categoryHasItems = true;
+                        }
+
+                        const color = colorSelect ? colorSelect.value : 'black';
+                        const prices = calculatePrices(item.price, quantity, color);
+
+                        categoryText += `${item.code}\n`;
+                        categoryText += `${item.desc}\n`;
+                        
+                        if (item.hasColor) {
+                            const colorText = color === 'black' ? 'Black' : color === 'white' ? 'White (+5%)' : 'Custom (+10%)';
+                            categoryText += `Color: ${colorText}\n`;
+                        }
+                        
+                        categoryText += `Quantity: ${quantity}\n`;
+                        categoryText += `Unit Price: $${item.price.toLocaleString()}\n`;
+
+                        if (includeBreakdown && prices.breakdown) {
+                            const bd = prices.breakdown;
+                            categoryText += '\nRetail Breakdown:\n';
+                            categoryText += `  Base: $${bd.retail.toLocaleString()}\n`;
+                            if (bd.paint > 0) {
+                                categoryText += `  Paint: +$${bd.paint.toFixed(2)}\n`;
+                            }
+                            categoryText += `  Import Fee (9%): +$${bd.import.toFixed(2)}\n`;
+                            categoryText += `  Subtotal per unit: $${((bd.retail + bd.paint + bd.import)).toFixed(2)}\n`;
+                        }
+
+                        categoryText += `RETAIL TOTAL: $${prices.retailTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+
+                        if (includeMyPrice) {
+                            if (includeBreakdown && prices.breakdown) {
+                                const bd = prices.breakdown;
+                                categoryText += '\nYour Price Breakdown:\n';
+                                categoryText += `  Discounted Base (35% off): $${bd.myBase.toFixed(2)}\n`;
+                                if (bd.paint > 0) {
+                                    categoryText += `  Paint (full price): +$${bd.paint.toFixed(2)}\n`;
+                                }
+                                categoryText += `  Import Fee (9%): +$${bd.import.toFixed(2)}\n`;
+                                categoryText += `  Subtotal per unit: $${((bd.myBase + bd.paint + bd.import)).toFixed(2)}\n`;
+                            }
+                            categoryText += `YOUR PRICE TOTAL: $${prices.myTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+                        }
+
+                        categoryText += '\n' + '─'.repeat(45) + '\n';
+
+                        grandRetail += prices.retailTotal;
+                        grandMyPrice += prices.myTotal;
+                        itemCount += quantity;
+                    }
+                });
+
+                if (categoryHasItems) {
+                    quote += categoryText;
+                }
+            });
+
+            quote += '\n═══════════════════════════════════════════\n';
+            quote += '              TOTALS\n';
+            quote += '═══════════════════════════════════════════\n';
+            quote += `Total Items: ${itemCount}\n`;
+            quote += `Total Retail Price: $${grandRetail.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+            
+            if (includeMyPrice) {
+                quote += `Your Price Total: $${grandMyPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+                quote += `Your Savings: $${(grandRetail - grandMyPrice).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n`;
+            }
+            
+            quote += '═══════════════════════════════════════════\n\n';
+            quote += 'Coda Audio USA\n';
+            quote += '1200 Harbour Way South Suite 118\n';
+            quote += 'Richmond, CA 94804\n';
+            quote += '+1 415 747 8593\n';
+            quote += 'usa@codaaudio.com\n';
+            quote += 'www.codaaudiousa.com\n';
+
+            return quote;
+        }
     </script>
 </body>
 </html>
